@@ -7,6 +7,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.*;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 
 public class PlayerListener implements Listener {
 	private MailChest plugin;
@@ -20,13 +22,14 @@ public class PlayerListener implements Listener {
 		Block chest = event.getClickedBlock();
 		
 		if (chest == null || !plugin.isMailbox(chest)) return;
-		
+
+        Inventory inv = ((InventoryHolder)chest.getState()).getInventory();
 		Player player = event.getPlayer();
-		if (player.equals(plugin.getMailboxOwner(chest)) || (player.hasPermission("mailchest.snoop") && player.isSneaking())) {
+		if (player.equals(plugin.getMailboxOwner(inv)) || (player.hasPermission("mailchest.snoop") && player.isSneaking())) {
 			return;
 		} else if (event.getAction() == Action.RIGHT_CLICK_BLOCK){
 			event.setCancelled(true);
-			plugin.openMailbox(player, chest);
+			plugin.openMailbox(player, inv);
 		}
 	}
 	

@@ -6,7 +6,10 @@ import java.io.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.block.*;
 import org.bukkit.entity.Player;
@@ -77,15 +80,23 @@ public class MailChest extends JavaPlugin {
 		//getLogger().info(mailboxes.toString());
 	}
 	
-	public boolean autoCreateMailbox(Block chest, Player player) {
-		if (isMailbox(chest)) {
+	public boolean autoCreateMailbox(Inventory inv, Player player) {
+		if (isMailbox(inv)) {
 			player.sendMessage(ChatColor.RED + "[MailChest] That's already a mailbox!");
 			return false;
 		} else if (!player.hasPermission("mailchest.autocreate")) {
 			return false;
 		} else {
 			Mailbox box = new Mailbox(player.getName());
-			mailboxes.put(new MailboxLocation(chest.getLocation()), box);
+            Location l;
+            if (inv.getHolder() instanceof BlockState) {
+                l = ((BlockState)inv.getHolder()).getLocation();
+            } else if (inv.getHolder() instanceof DoubleChest) {
+                l = ((DoubleChest)inv.getHolder()).getLocation();
+            } else {
+                return false;
+            }
+			mailboxes.put(new MailboxLocation(l), box);
 			writeMailboxData();
 			player.sendMessage(ChatColor.GOLD + "[MailChest] Created a mailbox!");
 			getLogger().info(player.getName() + " created a mailbox.");
@@ -93,9 +104,9 @@ public class MailChest extends JavaPlugin {
 		}
 	}
 	
- 	public boolean createMailbox(Block chest, Player creator, String ownerName) {
+ 	public boolean createMailbox(Inventory inv, Player creator, String ownerName) {
  		if (ownerName.equals("")) ownerName = creator.getName();
- 		if (isMailbox(chest)) {
+ 		if (isMailbox(inv)) {
 			creator.sendMessage(ChatColor.RED + "[MailChest] That's already a mailbox!");
 			return false;
  		} else if (!creator.getName().equals(ownerName) && !creator.hasPermission("mailchest.create.others")) {
@@ -109,7 +120,15 @@ public class MailChest extends JavaPlugin {
 			return false;
 		} else {
 			Mailbox box = new Mailbox(creator.getName(), ownerName);
-			mailboxes.put(new MailboxLocation(chest.getLocation()), box);
+            Location l;
+            if (inv.getHolder() instanceof BlockState) {
+                l = ((BlockState)inv.getHolder()).getLocation();
+            } else if (inv.getHolder() instanceof DoubleChest) {
+                l = ((DoubleChest)inv.getHolder()).getLocation();
+            } else {
+                return false;
+            }
+			mailboxes.put(new MailboxLocation(l), box);
 			writeMailboxData();
 			creator.sendMessage(ChatColor.GOLD + "[MailChest] Created a mailbox!");
 			getLogger().info(creator.getName() + " created a mailbox.");
@@ -119,15 +138,58 @@ public class MailChest extends JavaPlugin {
  	
  	public boolean isMailbox(Block block) {
         if (block.getType() != Material.CHEST && block.getType() != Material.TRAPPED_CHEST) return false;
- 		return mailboxes.containsKey(new MailboxLocation(block.getLocation()));
+        return isMailbox(((InventoryHolder)block.getState()).getInventory());
  	}
+
+    public boolean isMailbox(Inventory inv) {
+        InventoryHolder h = inv.getHolder();
+        Location l;
+        if (h instanceof BlockState) {
+            l = ((BlockState)h).getLocation();
+        } else if (h instanceof DoubleChest) {
+            l = ((DoubleChest)h).getLocation();
+        } else {
+            return false;
+        }
+        return mailboxes.containsKey(new MailboxLocation(l));
+    }
+
+    public void addMailbox(MailboxLocation l, Mailbox m) {
+        mailboxes.put(l, m);
+    }
+
+    public void removeMailbox(Inventory inv) {
+        InventoryHolder h = inv.getHolder();
+        Location l;
+        if (h instanceof BlockState) {
+            l = ((BlockState)h).getLocation();
+        } else if (h instanceof DoubleChest) {
+            l = ((DoubleChest)h).getLocation();
+        } else {
+            return;
+        }
+        mailboxes.remove(new MailboxLocation(l));
+    }
  	
  	public Mailbox getMailbox(Block block) {
- 		return mailboxes.get(new MailboxLocation(block.getLocation()));
+        if (block.getType() != Material.CHEST && block.getType() != Material.TRAPPED_CHEST) return null;
+ 		return getMailbox(((InventoryHolder)block.getState()).getInventory());
  	}
- 	
- 	public Player getMailboxOwner(Block block) {
- 		Mailbox mailbox = getMailbox(block);
+    public Mailbox getMailbox(Inventory inv) {
+        InventoryHolder h = inv.getHolder();
+        Location l;
+        if (h instanceof BlockState) {
+            l = ((BlockState)h).getLocation();
+        } else if (h instanceof DoubleChest) {
+            l = ((DoubleChest)h).getLocation();
+        } else {
+            return null;
+        }
+        return mailboxes.get(new MailboxLocation(l));
+    }
+
+ 	public Player getMailboxOwner(Inventory inv) {
+ 		Mailbox mailbox = getMailbox(inv);
  		if (mailbox == null) return null;
  		return getServer().getPlayerExact(mailbox.getOwnerName());
  	}
@@ -136,13 +198,28 @@ public class MailChest extends JavaPlugin {
  		return getServer().getPlayerExact(mailbox.getOwnerName());
  	}
 
-	public boolean destroyMailbox(Player player, Block block) {
-		Mailbox box = getMailbox(block);
+    public boolean destroyMailbox(Player player, Block block) {
+        if (block.getState() instanceof InventoryHolder) {
+            return destroyMailbox(player, ((InventoryHolder)block.getState()).getInventory());
+        } else {
+            return true;
+        }
+    }
+	public boolean destroyMailbox(Player player, Inventory inv) {
+		Mailbox box = getMailbox(inv);
 		if (box == null) return true;
 		if (player == null) return !getConfig().getBoolean("protect-mailboxes");
 		if (player.getName().equals(box.getOwnerName()) || player.getName().equals(box.getCreatorName()) 
 				|| player.hasPermission("mailchest.destroy")) {
-			mailboxes.remove(new MailboxLocation(block.getLocation()));
+            Location l;
+            if (inv.getHolder() instanceof BlockState) {
+                l = ((BlockState)inv.getHolder()).getLocation();
+            } else if (inv.getHolder() instanceof DoubleChest) {
+                l = ((DoubleChest)inv.getHolder()).getLocation();
+            } else {
+                return false;
+            }
+			mailboxes.remove(new MailboxLocation(l));
 			writeMailboxData();
 			player.sendMessage(ChatColor.GOLD + "[MailChest] Destroyed a mailbox.");
 			if (player.getName().equals(box.getOwnerName())) {
@@ -157,14 +234,13 @@ public class MailChest extends JavaPlugin {
 		}
 	}
 
-	public void openMailbox(Player player, Block block) {
-		Mailbox box = getMailbox(block);
-		Chest chest = (Chest)block.getState();
-		
+	public void openMailbox(Player player, Inventory inv) {
+		Mailbox box = getMailbox(inv);
+
 		if (!player.hasPermission("mailchest.send")) {
 			player.sendMessage(ChatColor.RED + "[MailChest] You don't have permission to send mail.");
 		} else {
-			inventoryListener.add(box, chest);
+			inventoryListener.add(box, inv);
 			player.openInventory(box.getInventory());
 		}
 	}

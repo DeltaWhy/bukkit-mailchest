@@ -3,10 +3,15 @@ package net.miscjunk.mailchest;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.*;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.material.*;
 
 public class BlockListener implements Listener {
 	private MailChest plugin;
@@ -23,24 +28,31 @@ public class BlockListener implements Listener {
 		
 		Block block = event.getBlock();
 		if (block.getType() == Material.CHEST || block.getType() == Material.TRAPPED_CHEST) {
-			Block otherChest = findAdjacentChest(block);
-			if (otherChest != null) {
-				if (plugin.isMailbox(otherChest)) {
-					player.sendMessage(ChatColor.RED + "[MailChest] You can't have a double chest mailbox.");
-					event.setCancelled(true);
-					return;
-				} else {
-					return;
-				}
-			}
-			Block beneathBlock = block.getRelative(BlockFace.DOWN);
-			if (beneathBlock != null && beneathBlock.getType() == Material.FENCE 
-					&& plugin.getConfig().getBoolean("auto-create.fence")) {
-				plugin.autoCreateMailbox(block, player);
-			} else if (beneathBlock != null	&& beneathBlock.getType() == Material.COBBLE_WALL
-					&& plugin.getConfig().getBoolean("auto-create.wall")) {
-				plugin.autoCreateMailbox(block, player);
-			}
+            Inventory inv = ((InventoryHolder)event.getBlock().getState()).getInventory();
+            if (inv instanceof DoubleChestInventory) {
+                Mailbox box;
+                DoubleChestInventory dc = (DoubleChestInventory)inv;
+                if (plugin.isMailbox(dc.getLeftSide())) {
+                    box = plugin.getMailbox(dc.getLeftSide());
+                } else if (plugin.isMailbox(dc.getRightSide())) {
+                    box = plugin.getMailbox(dc.getRightSide());
+                } else {
+                    return;
+                }
+                player.sendMessage(ChatColor.GOLD + "[MailChest] Extended mailbox.");
+                plugin.removeMailbox(dc.getLeftSide());
+                plugin.removeMailbox(dc.getRightSide());
+                plugin.addMailbox(new MailboxLocation(dc.getHolder().getLocation()), box);
+            } else {
+                Block beneathBlock = block.getRelative(BlockFace.DOWN);
+                if (beneathBlock != null && beneathBlock.getType() == Material.FENCE
+                        && plugin.getConfig().getBoolean("auto-create.fence")) {
+                    plugin.autoCreateMailbox(inv, player);
+                } else if (beneathBlock != null	&& beneathBlock.getType() == Material.COBBLE_WALL
+                        && plugin.getConfig().getBoolean("auto-create.wall")) {
+                    plugin.autoCreateMailbox(inv, player);
+                }
+            }
 		}
 	}
 	
@@ -49,21 +61,24 @@ public class BlockListener implements Listener {
 		Block block = event.getBlock();
 		if (plugin.isMailbox(block)) {
 			Player player = event.getPlayer();
-			if (!plugin.destroyMailbox(player, block)) {
+            Inventory inv = ((InventoryHolder)block.getState()).getInventory();
+			if (!plugin.destroyMailbox(player, inv)) {
 				event.setCancelled(true);
 			}
 		} else if (block.getType() == Material.WALL_SIGN) {
 			Sign sign = (Sign)block.getState();
-			if (sign.getLine(0).equals("[" + plugin.getConfig().getString("sign-text") + "]")) {
+            org.bukkit.material.Sign mat = (org.bukkit.material.Sign)block.getState().getData();
+			if (mat.isWallSign() && sign.getLine(0).equals("[" + plugin.getConfig().getString("sign-text") + "]")) {
 				Player player = event.getPlayer();
-				
-				Block chest = findAdjacentChest(block);
+
+				Block chest = block.getRelative(mat.getAttachedFace());
 				
 				if (chest == null) {
 					return;
 				}
-				
-				if (!plugin.destroyMailbox(player, chest)) {
+                Inventory inv = ((InventoryHolder)chest.getState()).getInventory();
+
+				if (!plugin.destroyMailbox(player, inv)) {
 					event.setCancelled(true);
 				}
 			}
@@ -75,53 +90,24 @@ public class BlockListener implements Listener {
 		if (event.getLine(0).equals("[" + plugin.getConfig().getString("sign-text") + "]")) {
 			Player creator = event.getPlayer();
 			Block signBlock = event.getBlock();
+            org.bukkit.material.Sign mat = (org.bukkit.material.Sign)signBlock.getState().getData();
+            if (!mat.isWallSign()) return;
+
+			Block chest = signBlock.getRelative(mat.getAttachedFace());
 			
-			Block chest = findAdjacentChest(signBlock);
-			
-			if (chest == null) {
+			if (chest == null || chest.getType() != Material.CHEST && chest.getType() != Material.TRAPPED_CHEST) {
 				creator.sendMessage(ChatColor.RED + "[MailChest] No chest found.");
 				event.setCancelled(true);
 				return;
 			}
-			
-			Block otherChest = findAdjacentChest(chest);
-			
-			if (otherChest != null) {
-				creator.sendMessage(ChatColor.RED + "[MailChest] You can't have a double chest mailbox.");
-				event.setCancelled(true);
-				return;
-			}
-			
-			if (plugin.createMailbox(chest, creator, event.getLine(1))) {
-				//attach sign to chest
-				if (signBlock.getType() == Material.SIGN_POST) {
-					signBlock.setType(Material.WALL_SIGN);
-					switch (signBlock.getFace(chest)) {
-					case NORTH:
-						signBlock.setData((byte) 5);
-						break;
-					case SOUTH:
-						signBlock.setData((byte) 4);
-						break;
-					case EAST:
-						signBlock.setData((byte) 3);
-						break;
-					case WEST:
-						signBlock.setData((byte) 2);
-						break;
-					default:
-						break;
-					}
-					Sign sign = (Sign)signBlock.getState();
-					sign.setLine(0, event.getLine(0));
-					sign.setLine(1, creator.getName());
-					sign.setLine(2, "");
-					sign.setLine(3, "");
-					sign.update(true);
-				}
-			} else {
-				event.setCancelled(true);
-			}
+
+            if (chest.getState() instanceof InventoryHolder) {
+                Inventory inv = ((InventoryHolder)chest.getState()).getInventory();
+
+                if (!plugin.createMailbox(inv, creator, event.getLine(1))) {
+                    event.setCancelled(true);
+                }
+            }
 		}
 	}
 
@@ -149,7 +135,8 @@ public class BlockListener implements Listener {
 					i--;
 				}
 			} else if (block.getType() == Material.WALL_SIGN) {
-				Block chest = findAdjacentChest(block);
+                org.bukkit.material.Sign mat = (org.bukkit.material.Sign)block.getState().getData();
+				Block chest = block.getRelative(mat.getAttachedFace());
 				if (chest != null && !plugin.destroyMailbox(null, chest)) {
 					event.blockList().remove(i);
 					i--;
@@ -169,8 +156,9 @@ public class BlockListener implements Listener {
 		} else if (block.getType() == Material.WALL_SIGN) {
 			Sign sign = (Sign)block.getState();
 			if (sign.getLine(0).equals("[" + plugin.getConfig().getString("sign-text") + "]")) {
-				Block chest = findAdjacentChest(block);
-				
+                org.bukkit.material.Sign mat = (org.bukkit.material.Sign)block.getState().getData();
+                Block chest = block.getRelative(mat.getAttachedFace());
+
 				if (chest == null) {
 					return;
 				}

@@ -15,15 +15,15 @@ import org.bukkit.inventory.*;
 public class InventoryListener implements Listener {
 	private MailChest plugin;
 	private List<InventoryHolder> boxes;
-	private List<Chest> chests;
+	private List<Inventory> chests;
 	
 	public InventoryListener(MailChest plugin) {
 		this.plugin = plugin;
 		this.boxes = new ArrayList<InventoryHolder>();
-		this.chests = new ArrayList<Chest>();
+		this.chests = new ArrayList<Inventory>();
 	}
 	
-	public void add(InventoryHolder box, Chest chest) {
+	public void add(InventoryHolder box, Inventory chest) {
 		this.boxes.add(box);
 		this.chests.add(chest);
 	}
@@ -36,10 +36,8 @@ public class InventoryListener implements Listener {
 		
 		int i = boxes.indexOf(box);
 		if (i == -1) return;
-		Chest chest = chests.get(i);
+		Inventory chest = chests.get(i);
 		
-		Inventory chestInv = chest.getInventory();
-				
 		HumanEntity player = event.getPlayer();
 		Inventory playerInv = player.getInventory();
 		
@@ -48,7 +46,7 @@ public class InventoryListener implements Listener {
 		for (ItemStack stack : inv) {
 			if (stack == null) continue;
 			empty = false;
-			HashMap<Integer, ItemStack> overflow = chestInv.addItem(stack);
+			HashMap<Integer, ItemStack> overflow = chest.addItem(stack);
 			if (overflow != null && overflow.size() > 0) {
 				overflowed = true;
 				for (ItemStack overStack : overflow.values()) {
