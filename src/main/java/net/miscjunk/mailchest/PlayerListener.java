@@ -19,7 +19,7 @@ public class PlayerListener implements Listener {
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		Block chest = event.getClickedBlock();
 		
-		if (chest == null || chest.getType() != Material.CHEST || !plugin.isMailbox(chest)) return;
+		if (chest == null || !plugin.isMailbox(chest)) return;
 		
 		Player player = event.getPlayer();
 		if (player.equals(plugin.getMailboxOwner(chest)) || (player.hasPermission("mailchest.snoop") && player.isSneaking())) {

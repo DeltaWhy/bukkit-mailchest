@@ -22,7 +22,7 @@ public class BlockListener implements Listener {
 			return;
 		
 		Block block = event.getBlock();
-		if (block.getType() == Material.CHEST) {
+		if (block.getType() == Material.CHEST || block.getType() == Material.TRAPPED_CHEST) {
 			Block otherChest = findAdjacentChest(block);
 			if (otherChest != null) {
 				if (plugin.isMailbox(otherChest)) {
@@ -47,7 +47,7 @@ public class BlockListener implements Listener {
 	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
 		Block block = event.getBlock();
-		if (block.getType() == Material.CHEST && plugin.isMailbox(block)) {
+		if (plugin.isMailbox(block)) {
 			Player player = event.getPlayer();
 			if (!plugin.destroyMailbox(player, block)) {
 				event.setCancelled(true);
@@ -130,7 +130,7 @@ public class BlockListener implements Listener {
 		Block chest = null;
 		
 		for (BlockFace direction : directions) {
-			if (block.getRelative(direction).getType() == Material.CHEST) {
+			if (block.getRelative(direction).getType() == Material.CHEST || block.getRelative(direction).getType() == Material.TRAPPED_CHEST) {
 				chest = block.getRelative(direction);
 				break;
 			}
@@ -143,7 +143,7 @@ public class BlockListener implements Listener {
 		if (event.isCancelled()) return;
 		for (int i=0; i < event.blockList().size(); i++) {
 			Block block = event.blockList().get(i);
-			if (block.getType() == Material.CHEST) {
+			if (block.getType() == Material.CHEST || block.getType() == Material.TRAPPED_CHEST) {
 				if (!plugin.destroyMailbox(null, block)) {
 					event.blockList().remove(i);
 					i--;
@@ -162,7 +162,7 @@ public class BlockListener implements Listener {
 	public void onBlockBurn(BlockBurnEvent event) {
 		if (event.isCancelled()) return;
 		Block block = event.getBlock();
-		if (block.getType() == Material.CHEST && plugin.isMailbox(block)) {
+		if (plugin.isMailbox(block)) {
 			if (!plugin.destroyMailbox(null, block)) {
 				event.setCancelled(true);
 			}

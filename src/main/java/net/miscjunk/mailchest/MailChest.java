@@ -4,7 +4,9 @@ import java.util.HashMap;
 
 import java.io.*;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.block.*;
 import org.bukkit.entity.Player;
@@ -24,7 +26,7 @@ public class MailChest extends JavaPlugin {
 		userConfig = new ConfigAccessor(this, "users.yml");
 		userConfig.reloadConfig();
 		readMailboxData();
-	}
+    }
 
 	@SuppressWarnings("unchecked")
 	private void readMailboxData() {
@@ -116,6 +118,7 @@ public class MailChest extends JavaPlugin {
  	}
  	
  	public boolean isMailbox(Block block) {
+        if (block.getType() != Material.CHEST && block.getType() != Material.TRAPPED_CHEST) return false;
  		return mailboxes.containsKey(new MailboxLocation(block.getLocation()));
  	}
  	

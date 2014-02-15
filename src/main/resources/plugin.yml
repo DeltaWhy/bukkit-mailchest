@@ -1,7 +1,7 @@
 name: MailChest
 author: DeltaWhy
 website: https://github.com/DeltaWhy/bukkit-mailchest
-main: com.github.deltawhy.mailchest.MailChest
+main: net.miscjunk.mailchest.MailChest
 version: '${pom.version}'
 permissions:
   mailchest.autocreate:
