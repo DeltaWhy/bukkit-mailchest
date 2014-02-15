@@ -2,7 +2,7 @@ name: MailChest
 author: DeltaWhy
 website: https://github.com/DeltaWhy/bukkit-mailchest
 main: com.github.deltawhy.mailchest.MailChest
-version: alpha-1.1
+version: '${pom.version}'
 permissions:
   mailchest.autocreate:
     description: Allows you to create a mailbox by placing a chest on a fence
