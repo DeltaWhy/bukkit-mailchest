@@ -1,4 +1,4 @@
-package com.github.deltawhy.mailchest;
+package net.miscjunk.mailchest;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;

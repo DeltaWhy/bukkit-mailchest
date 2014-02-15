@@ -1,4 +1,4 @@
-package com.github.deltawhy.mailchest;
+package net.miscjunk.mailchest;
 
 import java.io.Serializable;
 

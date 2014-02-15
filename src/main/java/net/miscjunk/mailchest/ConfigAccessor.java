@@ -1,5 +1,5 @@
 /* Source: https://gist.github.com/3174347 */
-package com.github.deltawhy.mailchest;
+package net.miscjunk.mailchest;
 
 /*
 * Copyright (C) 2012
