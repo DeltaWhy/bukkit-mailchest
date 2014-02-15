@@ -13,6 +13,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.block.*;
 import org.bukkit.entity.Player;
+import org.mcstats.Metrics;
 
 public class MailChest extends JavaPlugin {
 	private HashMap<MailboxLocation, Mailbox> mailboxes;
@@ -29,6 +30,12 @@ public class MailChest extends JavaPlugin {
 		userConfig = new ConfigAccessor(this, "users.yml");
 		userConfig.reloadConfig();
 		readMailboxData();
+        try {
+            Metrics metrics = new Metrics(this);
+            metrics.start();
+        } catch (IOException e) {
+            Bukkit.getLogger().info("Failed to send metrics");
+        }
     }
 
 	@SuppressWarnings("unchecked")
@@ -138,7 +145,7 @@ public class MailChest extends JavaPlugin {
  	
  	public boolean isMailbox(Block block) {
         if (block.getType() != Material.CHEST && block.getType() != Material.TRAPPED_CHEST) return false;
-        return isMailbox(((InventoryHolder)block.getState()).getInventory());
+        return isMailbox(((InventoryHolder) block.getState()).getInventory());
  	}
 
     public boolean isMailbox(Inventory inv) {
